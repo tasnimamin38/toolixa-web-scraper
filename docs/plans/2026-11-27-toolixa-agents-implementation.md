@@ -92,3 +92,66 @@
 - CI covers tests, lint, compile, catalog consistency, and dependency auditing.
 - Vercel remains static-only.
 - No license file or license claim is introduced.
+
+
+---
+
+## Phase 1: Local AI Gateway (experimental alpha)
+
+**Implementation status:** Local code and Windows/Python 3.11 validation complete on branch `feature/python-local-ai-gateway`; GitHub Actions CI and dependency audit passed for commit `00d3c4b3b8c3000f1d9531ffc210ff07337c090c`. Independent security review remains pending.
+
+**Goal:** Turn Toolixa from a catalog plus SDK skeleton into a locally operated, browser-configurable AI gateway without making core SDK dependencies mandatory or introducing a hosted/paid runtime.
+
+**Files:** `core/src/toolixa_core/gateway/**`, `core/pyproject.toml`, `tests/test_gateway_contract.py`, `.github/workflows/ci.yml`, `.github/workflows/security.yml`, `README.md`, `docs/gateway-guide.md`, `docs/installation.md`, `docs/byor-guide.md`, `docs/architecture.md`, `docs/security-model.md`.
+
+**Interfaces:** Local Python CLI, server-rendered dashboard on loopback, encrypted local provider credentials, Toolixa-issued API keys, provider model discovery, OpenAI-compatible `/v1/models` and `/v1/chat/completions` JSON/SSE routes.
+
+- [x] Keep `toolixa-core` base dependencies empty and make gateway dependencies an optional `[gateway]` extra.
+- [x] Implement first-run local dashboard password, hash-based password check, local session cookie and trusted-host guard.
+- [x] Implement Fernet-encrypted local provider-key storage and hash-only Toolixa API-key storage.
+- [x] Implement configurable OpenAI Chat Completions-compatible endpoints and namespaced `provider/model` IDs.
+- [x] Implement provider model discovery, non-streaming chat, streaming pass-through, dashboard playground and key revocation.
+- [x] Add mock-only tests for storage, auth, endpoint validation, model listing, JSON/SSE chat, redaction and host validation; no live provider key or paid provider request is used.
+- [x] Run on Windows Python 3.11.9: `pip install -e "./core[gateway]"`, compileall, Ruff check/format, catalog check and full pytest suite.
+- [x] Local result: 36 tests passed; Ruff clean; all 49 Python files formatted; compile and catalog checks passed.
+- [x] Push branch and verify GitHub Actions CI and dependency audit on commit `00d3c4b3b8c3000f1d9531ffc210ff07337c090c`; both workflows passed.
+- [ ] Complete independent code/security review before any public release.
+
+### Explicit limits of this phase
+
+This phase supports the OpenAI Chat Completions-compatible API contract. It does not yet mean every proprietary provider protocol is supported. Native Anthropic/Gemini adapters, OAuth, MCP client/server and tool invocation, real per-agent model wiring, multi-agent orchestration, browser automation, isolated executor, remote multi-user access and production hardening remain future phases. The gateway is local-only and experimental; do not expose it publicly.
+
+## Phase 2: Native provider protocols and MCP
+
+- [ ] Add native protocol adapters (including Anthropic and Gemini) behind a shared model interface.
+- [ ] Add provider capability metadata, model capabilities, health checks, timeouts, bounded retries and explicit fallback policy.
+- [ ] Add the official Python MCP SDK as an optional integration extra.
+- [ ] Implement MCP server registration over stdio and Streamable HTTP with explicit trust/allowlist configuration.
+- [ ] Discover MCP tools/resources/prompts without automatically granting permission to call them.
+- [ ] Add a permission-aware tool bridge; require per-tool/user approval for consequential actions and record redacted audit events.
+- [ ] Test tool schema validation, malformed responses, server loss, timeouts, prompt injection, permission denial and secret redaction using fake MCP servers.
+
+## Phase 3: Agent Runtime and memory
+
+- [ ] Wire provider selection and Toolixa gateway clients into the six agent starters.
+- [ ] Add per-agent and per-task model/tool policies, context limits, token budgets, cancellation and traceable execution state.
+- [ ] Build isolated execution adapters only after a documented sandbox boundary exists; keep process execution disabled by default.
+- [ ] Add source-aware persistent memory with explicit read/write permission and a replaceable vector-store interface.
+- [ ] Add browser automation through an isolated, operator-approved browser runtime.
+- [ ] Add multi-agent orchestration with dependency control, message provenance, cycle/depth limits and cancellation propagation.
+
+## Phase 4: Production hardening gate
+
+- [ ] Complete a documented threat-model review and independent penetration test.
+- [ ] Add CSRF protection, session rotation/revocation, login throttling, API rate/size limits, request quotas and abuse controls.
+- [ ] Add durable audit logs with tamper evidence, safe tracing/metrics and key-rotation/recovery procedures.
+- [ ] Harden outbound networking with DNS/IP pinning or enforced egress control, redirect revalidation and private/metadata IP rejection.
+- [ ] Add SBOM, signed releases, provenance, dependency pinning and continuous vulnerability response.
+- [ ] Add backup/restore, deployment/runbook, incident-response and service-health acceptance tests.
+- [ ] Do not market as production-ready until every mandatory gate has objective evidence.
+
+## Phase 5: Optional hosted multi-user service
+
+- [ ] Design identity, tenant isolation, remote secret storage/KMS, access control, quotas, billing and deletion/export workflows.
+- [ ] Separate local-only gateway from hosted control plane and tenant data planes.
+- [ ] Complete architecture, privacy and security reviews before enabling public signup or remote API access.

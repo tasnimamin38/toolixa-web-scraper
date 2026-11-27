@@ -6,7 +6,7 @@
 - Git.
 - A virtual environment is strongly recommended.
 
-The Toolixa directory website is static. It is not required to run any agent.
+The public Toolixa directory website is static and does not need to run locally. The local AI Gateway is a separate Python process.
 
 ## Clone and prepare
 
@@ -14,12 +14,33 @@ The Toolixa directory website is static. It is not required to run any agent.
 git clone https://github.com/tasnimamin38/toolixa-agents.git
 cd toolixa-agents
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ./core
 ~~~
 
-On macOS or Linux, activate with source .venv/bin/activate.
+On macOS or Linux, activate with `source .venv/bin/activate`.
+
+## Run the local AI Gateway
+
+Install the optional gateway extra. This adds FastAPI, Uvicorn, HTTPX, Jinja2 and cryptography without making them mandatory dependencies of the small core SDK.
+
+~~~powershell
+python -m pip install -e "./core[gateway]"
+python -m toolixa_core.gateway
+~~~
+
+The first run prints a random one-time dashboard password and starts a server bound to `127.0.0.1:20128`. The browser opens automatically. Otherwise visit `http://127.0.0.1:20128`. The API base is `http://127.0.0.1:20128/v1`.
+
+Use `python -m toolixa_core.gateway --help` for local options. `--port 20129` chooses another local port; `--no-open` prevents opening the browser.
+
+Never expose this experimental dashboard/API through a public reverse proxy, tunnel, or port-forward. It is not a hosted or multi-user gateway.
+
+## Add an upstream provider
+
+Sign in to the local dashboard, add a provider's name, OpenAI Chat Completions-compatible API base URL and provider key, then select **Test connection** to discover models. Any provider exposing the compatible `GET /models` and `POST /chat/completions` contract can be used. Examples and API usage are in [the gateway guide](gateway-guide.md).
+
+Provider secrets are encrypted in a local SQLite store; the encryption key is kept separately under the user's local application-data directory. Toolixa client keys are shown once and stored as hashes. Never add real credentials to `agent.json`, source code, README files, catalog data, logs, or Git.
 
 ## Install one agent
 
@@ -38,9 +59,7 @@ cd agents/06-web-scraper
 python main.py --help
 ~~~
 
-## Provider keys
-
-The local starters do not require a paid model provider. Future provider-backed adapters must document the exact provider environment variables they consume. Never add real credentials to agent.json, source code, README files, catalog data, logs, or Git.
+The starter agents are still bounded experimental examples. The current gateway does not yet automatically attach model providers to every agent.
 
 ## Verify installation
 
@@ -48,6 +67,7 @@ From repository root:
 
 ~~~powershell
 python scripts/build_catalog.py --check
+python -m compileall -q core/src agents scripts tests
 python -m pytest -q
 ~~~
 

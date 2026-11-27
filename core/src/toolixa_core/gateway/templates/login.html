@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Toolixa Gateway — Sign in</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body class="auth-shell">
+  <main class="auth-card">
+    <div class="brand-mark">T</div>
+    <p class="eyebrow">LOCAL CONTROL PLANE</p>
+    <h1>Toolixa Gateway</h1>
+    <p class="muted">Sign in to manage your AI providers and gateway keys.</p>
+    {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+    <form method="post" action="/login">
+      <label for="password">Dashboard password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button type="submit">Unlock dashboard <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="fineprint">The dashboard is local-only and is not exposed to the internet.</p>
+  </main>
+</body>
+</html>

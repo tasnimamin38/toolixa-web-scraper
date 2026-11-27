@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Toolixa Gateway — Control Plane</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark small">T</span><span>TOOLIXA <b>GATEWAY</b></span></a>
+    <div class="top-actions"><span class="local-indicator"><i></i> LOCAL INSTANCE</span><form method="post" action="/logout"><button class="button-quiet" type="submit">Sign out</button></form></div>
+  </header>
+  <main class="page-wrap">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">CONTROL PLANE / 01</p>
+        <h1>Your models. One gateway.</h1>
+        <p class="hero-copy">Connect compatible AI endpoints, discover their models, then route your agents through one local API.</p>
+      </div>
+      <div class="endpoint-card"><span class="card-label">OPENAI-COMPATIBLE BASE URL</span><code>http://127.0.0.1:20128/v1</code><span class="fineprint">Gateway authentication uses a Toolixa API key, not your upstream provider key.</span></div>
+    </section>
+
+    {% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+    {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+    {% if new_api_key %}<section class="one-time-key"><div><p class="eyebrow">COPY NOW · SHOWN ONCE</p><h2>Gateway key created</h2><p class="muted">Save this key in the client that will call Toolixa. It is not stored in plaintext and cannot be displayed again.</p></div><code>{{ new_api_key }}</code></section>{% endif %}
+
+    <section class="metrics-grid">
+      <article class="metric"><span>CONNECTED PROVIDERS</span><strong>{{ providers|length }}</strong><small>Configured endpoints</small></article>
+      <article class="metric"><span>AVAILABLE MODELS</span><strong>{{ providers|map(attribute='models')|map('length')|sum }}</strong><small>Discovered or manually entered</small></article>
+      <article class="metric"><span>GATEWAY KEYS</span><strong>{{ api_keys|rejectattr('revoked')|list|length }}</strong><small>Active client credentials</small></article>
+      <article class="metric"><span>RUNTIME MODE</span><strong>LOCAL</strong><small>Python · loopback only</small></article>
+    </section>
+
+    <section class="section" id="providers">
+      <div class="section-heading"><div><p class="eyebrow">MODEL CONNECTIONS / 02</p><h2>Providers</h2><p class="muted">Any service that implements the OpenAI Chat Completions API shape can be connected here.</p></div><span class="pill">BYOK · CUSTOM BASE URL</span></div>
+      <div class="provider-layout">
+        <div class="provider-list">
+          {% for provider in providers %}
+          <article class="provider-card">
+            <div class="provider-main"><div class="provider-avatar">{{ provider.name[:1]|upper }}</div><div><h3>{{ provider.name }}</h3><code class="url-text">{{ provider.base_url }}</code></div></div>
+            <div class="model-list">
+              {% if provider.models %}
+                {% for model in provider.models %}<div class="model-row"><code>{{ provider.id }}/{{ model }}</code><span class="model-state">READY</span></div>{% endfor %}
+              {% else %}<p class="muted small-copy">No models recorded yet. Test the connection to discover models, or add model IDs manually.</p>{% endif %}
+            </div>
+            <div class="provider-actions"><form method="post" action="/providers/{{ provider.id }}/test"><button class="button-secondary" type="submit">Test &amp; discover models</button></form><form method="post" action="/providers/{{ provider.id }}/delete"><button class="button-danger" type="submit">Remove</button></form></div>
+          </article>
+          {% else %}
+          <div class="empty-state"><span class="empty-orbit">◎</span><h3>No providers connected</h3><p>Add an OpenAI-compatible provider to make its models available to your agents.</p></div>
+          {% endfor %}
+        </div>
+        <aside class="form-card">
+          <p class="eyebrow">NEW CONNECTION</p><h3>Add a provider</h3>
+          <form method="post" action="/providers/add" class="stack-form">
+            <label for="provider-name">Display name</label><input id="provider-name" name="name" placeholder="e.g. OpenRouter, Ollama, My vLLM" required maxlength="80">
+            <label for="provider-url">API base URL</label><input id="provider-url" name="base_url" placeholder="https://api.example.com/v1" required><small>Use HTTPS for remote endpoints. HTTP is allowed only for localhost model servers.</small>
+            <label for="provider-key">Provider API key <span class="optional">OPTIONAL</span></label><input id="provider-key" name="api_key" type="password" placeholder="Paste your key here" autocomplete="off"><small>The key is encrypted before it is saved. It never appears in the provider list or logs.</small>
+            <label for="provider-models">Model IDs <span class="optional">OPTIONAL</span></label><textarea id="provider-models" name="models" rows="3" placeholder="model-name-1&#10;model-name-2"></textarea><small>Enter one model ID per line, or leave blank and use Test &amp; discover models.</small>
+            <button type="submit">Add provider <span aria-hidden="true">＋</span></button>
+          </form>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="keys">
+      <div class="section-heading"><div><p class="eyebrow">CLIENT ACCESS / 03</p><h2>Gateway API keys</h2><p class="muted">Create keys for your agents, IDEs, or other OpenAI-compatible clients.</p></div></div>
+      <div class="keys-layout">
+        <div class="key-list">
+          {% for key in api_keys %}
+          <article class="key-row"><div><strong>{{ key.name }}</strong><code>{{ key.prefix }}••••••••</code><small>Created {{ key.created_at }}{% if key.last_used_at %} · Last used {{ key.last_used_at }}{% endif %}</small></div><div class="key-actions">{% if key.revoked %}<span class="pill muted-pill">REVOKED</span>{% else %}<span class="pill active-pill">ACTIVE</span><form method="post" action="/keys/{{ key.id }}/revoke"><button class="button-danger" type="submit">Revoke</button></form>{% endif %}</div></article>
+          {% else %}<p class="muted">No gateway keys created.</p>{% endfor %}
+        </div>
+        <aside class="form-card compact-form"><p class="eyebrow">NEW CLIENT</p><h3>Create gateway key</h3><form method="post" action="/keys/add" class="stack-form"><label for="key-name">Key name</label><input id="key-name" name="name" placeholder="e.g. Dev Copilot desktop" required maxlength="80"><button type="submit">Create API key</button></form></aside>
+      </div>
+    </section>
+
+    <section class="section playground-section">
+      <div class="section-heading"><div><p class="eyebrow">LIVE CONNECTION CHECK / 04</p><h2>Model playground</h2><p class="muted">Send a prompt directly to one of your configured models. Requests are not saved by this dashboard.</p></div></div>
+      <div class="playground-card">
+        <form method="post" action="/playground" class="playground-form">
+          <label for="playground-model">Model</label>
+          <select id="playground-model" name="model" required>
+            <option value="">Choose a connected model</option>
+            {% for model in model_choices %}<option value="{{ model.id }}" {% if chat_model == model.id %}selected{% endif %}>{{ model.id }}</option>{% endfor %}
+          </select>
+          <label for="playground-prompt">Prompt</label>
+          <textarea id="playground-prompt" name="prompt" rows="4" maxlength="20000" placeholder="Ask a short test question…" required></textarea>
+          <button type="submit" {% if not model_choices %}disabled{% endif %}>Send test prompt</button>
+        </form>
+        {% if chat_result %}<div class="playground-result"><span>MODEL RESPONSE</span><pre>{{ chat_result }}</pre></div>{% endif %}
+      </div>
+    </section>
+
+    <section class="section integration-section">
+      <div><p class="eyebrow">CONNECT YOUR AGENTS / 05</p><h2>One endpoint for your clients</h2><p class="muted">Configure your OpenAI-compatible client with these values. Select a model using the <code>provider-id/model-id</code> format shown above.</p></div>
+      <div class="code-panel"><div><span>BASE URL</span><code>http://127.0.0.1:20128/v1</code></div><div><span>API KEY</span><code>Your Toolixa gateway key (tla_…)</code></div><div><span>MODEL</span><code>provider-id/model-id</code></div><div><span>SUPPORTED ROUTE</span><code>POST /chat/completions · GET /models</code></div></div>
+    </section>
+
+    <section class="section account-section">
+      <div><p class="eyebrow">LOCAL SECURITY / 06</p><h2>Dashboard password</h2><p class="muted">Use a unique password. Sessions expire after 12 hours.</p></div>
+      <form method="post" action="/account/password" class="password-form"><input name="current_password" type="password" placeholder="Current password" autocomplete="current-password" required><input name="new_password" type="password" placeholder="New password (12+ characters)" autocomplete="new-password" minlength="12" required><button class="button-secondary" type="submit">Update password</button></form>
+    </section>
+    <footer><span>TOOLIXA GATEWAY · PYTHON RUNTIME</span><span>LOCAL-FIRST · BRING YOUR OWN PROVIDER</span></footer>
+  </main>
+</body>
+</html>
